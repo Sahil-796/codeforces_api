@@ -1,9 +1,20 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from collections import defaultdict
 from datetime import datetime
+import os
 
-app = FastAPI()
+app = FastAPI(title="Codeforces API", description="API for fetching Codeforces user data")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 CODEFORCES_API = "https://codeforces.com/api"
 
@@ -15,6 +26,17 @@ async def fetch_codeforces(endpoint: str, params: dict = None):
         if data.get("status") != "OK":
             raise HTTPException(status_code=404, detail=data.get("comment", "Not found"))
         return data["result"]
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to Codeforces API",
+        "endpoints": {
+            "user_info": "/user/{handle}",
+            "solved_problems": "/user/{handle}/solved",
+            "rating_history": "/user/{handle}/rating"
+        }
+    }
 
 @app.get("/user/{handle}")
 async def get_user_info(handle: str):
