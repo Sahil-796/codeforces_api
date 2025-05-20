@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import httpx
 from collections import defaultdict
 from datetime import datetime
@@ -12,7 +13,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "HEAD", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -27,9 +28,11 @@ async def fetch_codeforces(endpoint: str, params: dict = None):
             raise HTTPException(status_code=404, detail=data.get("comment", "Not found"))
         return data["result"]
 
-@app.get("/")
+@app.get("/", response_class=JSONResponse)
+@app.head("/")
 async def root():
     return {
+        "status": "active",
         "message": "Welcome to Codeforces API",
         "endpoints": {
             "user_info": "/user/{handle}",
@@ -37,6 +40,13 @@ async def root():
             "rating_history": "/user/{handle}/rating"
         }
     }
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
 
 @app.get("/user/{handle}")
 async def get_user_info(handle: str):
